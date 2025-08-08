@@ -1,13 +1,14 @@
 package core;
 
 
-import tileengine.TERenderer;
+
 import tileengine.TETile;
 import tileengine.Tileset;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.awt.Color;
 
 public class WorldGenerator {
 
@@ -17,7 +18,20 @@ public class WorldGenerator {
     private final Random random;
 
     private final TETile[][] world;
-    List<Position> roomCenters = new ArrayList<>();
+    private final List<Position> roomCenters = new ArrayList<>();
+    private Position avatarPosition;
+
+    private static final int COIN_ID =89676;
+
+    private final TETile COIN = new TETile('$', Color.YELLOW, Color.BLACK, "coin",COIN_ID);
+    private int coinsLeft = 0;
+
+    public int getCoinsLeft() {
+        return coinsLeft;
+    }
+
+
+
 
 
 
@@ -31,18 +45,15 @@ public class WorldGenerator {
         fillWithNothing();
     }
 
+    public Position getAvatarPosition(){
+        return avatarPosition;
+    }
+
     private void fillWithNothing() {
         for (int x = 0; x <WIDTH; x++) {
             for (int y = 0; y <HEIGHT; y++) {
                 world[x][y] = Tileset.NOTHING;
             }
-        }
-    }
-    private static class Position {
-        int x, y;
-        Position(int x, int y) {
-            this.x = x;
-            this.y = y;
         }
     }
 
@@ -73,9 +84,46 @@ public class WorldGenerator {
             Position p2 = roomCenters.get(i);
             connectRooms(p1,p2);
         }
+        for (int y = 0; y < HEIGHT;y++) {
+            for (int x = 0; x <WIDTH;x++) {
+                if (world[x][y] == Tileset.FLOOR) {
+                    avatarPosition = new Position(x,y);
+                    world[x][y] = Tileset.AVATAR;
+                    break;
+                }
+            }
+            if (avatarPosition != null) break;
+        }
+        placeCoins(6);
+
 
         return world;
 
+    }
+
+    public boolean tryMove(int dx ,int dy) {
+
+        if (avatarPosition == null) return false;
+
+        int nx = avatarPosition.x +dx;
+        int ny = avatarPosition.y +dy;
+
+        if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT) return false;
+
+        TETile target = world[nx][ny];
+
+        if (target == Tileset.WALL || target == Tileset.NOTHING) return false;
+
+        boolean steppingOnCoin = target.id() == COIN_ID;
+        if (steppingOnCoin) {
+            coinsLeft = Math.max(0,coinsLeft-1);
+        }
+
+        world[avatarPosition.x][avatarPosition.y] = Tileset.FLOOR;
+        avatarPosition.x = nx;
+        avatarPosition.y = ny;
+        world[nx][ny] = Tileset.AVATAR;
+        return true;
     }
 
 
@@ -143,19 +191,19 @@ public class WorldGenerator {
             world[x][y] = Tileset.FLOOR;
 
 
-            if (world[x][y + 1] == Tileset.NOTHING){
+            if (y+1 < HEIGHT && world[x][y + 1] == Tileset.NOTHING){
                 world[x][y +1] = Tileset.WALL;
             }
-            if (world[x][y - 1] == Tileset.NOTHING){
+            if (y-1 >= 0 && world[x][y - 1] == Tileset.NOTHING){
                 world[x][y - 1] = Tileset.WALL;
             }
         }
 
-        if (world[start - 1][y] == Tileset.NOTHING){
+        if (start -1 >= 0 && world[start - 1][y] == Tileset.NOTHING){
             world[start - 1][y] = Tileset.WALL;
 
         }
-        if (world[end +1][y] == Tileset.NOTHING){
+        if (end + 1 < WIDTH && world[end +1][y] == Tileset.NOTHING){
             world[end + 1][y] = Tileset.WALL;
         }
     }
@@ -178,23 +226,56 @@ public class WorldGenerator {
             world[x][y] = Tileset.FLOOR;
 
 
-            if (world[x - 1][y] == Tileset.NOTHING) {
+            if (x-1 >= 0 && world[x - 1][y] == Tileset.NOTHING) {
                 world[x - 1][y] = Tileset.WALL;
             }
-            if (world[x + 1][y] == Tileset.NOTHING) {
+            if (x + 1 < WIDTH && world[x + 1][y] == Tileset.NOTHING) {
                 world[x + 1][y] = Tileset.WALL;
             }
         }
 
 
-        if (world[x][start - 1] == Tileset.NOTHING) {
+        if (start -1 >= 0 && world[x][start - 1] == Tileset.NOTHING) {
             world[x][start - 1] = Tileset.WALL;
         }
 
-        if (world[x][end + 1] == Tileset.NOTHING) {
+        if (end +1 < HEIGHT && world[x][end + 1] == Tileset.NOTHING) {
             world[x][end + 1] = Tileset.WALL;
         }
     }
 
+    public long getSeed() {
+        return seed;
+    }
+
+    public void forceAvatar(int x, int y) {
+
+        if (avatarPosition != null && world[avatarPosition.x][avatarPosition.y] == Tileset.AVATAR) {
+            world[avatarPosition.x][avatarPosition.y] = Tileset.FLOOR;
+
+        }
+
+        if (x >=0 && x <WIDTH && y >= 0 && y < HEIGHT && world[x][y] == Tileset.FLOOR) {
+            avatarPosition = new Position(x, y);
+            world[x][y] = Tileset.AVATAR;
+        }
+    }
+
+    private void placeCoins(int count) {
+        int placed = 0;
+        int tries = 0;
+        while(placed < count && tries < 5000) {
+            int x = random.nextInt(WIDTH);
+            int y = random.nextInt(HEIGHT);
+            if (world[x][y] == Tileset.FLOOR) {
+                if (avatarPosition == null || !(avatarPosition.x == x && avatarPosition.y == y)) {
+                    world[x][y] = COIN;
+                    placed++;
+                }
+            }
+            tries++;
+        }
+        coinsLeft = placed;
+    }
 
 }
