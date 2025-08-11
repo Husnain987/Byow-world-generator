@@ -4,6 +4,7 @@ package core;
 
 import tileengine.TETile;
 import tileengine.Tileset;
+import utils.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,17 +59,17 @@ public class WorldGenerator {
     }
 
     public TETile[][] generateWorld() {
-        int numRooms = random.nextInt(7) + 6;
+        int numRooms = RandomUtils.uniform(random,6,13);
         int roomsAdded = 0;
         int attempts = 0;
 
 
         while (roomsAdded < numRooms && attempts < 1000) {
-            int roomWidth = random.nextInt(5) + 4;
-            int roomHeight =  random.nextInt(5) + 4;
+            int roomWidth = RandomUtils.uniform(random, 4, 9);
+            int roomHeight =  RandomUtils.uniform(random, 4, 9);
 
-            int x = random.nextInt(WIDTH - roomWidth - 2) + 1;
-            int y = random.nextInt(HEIGHT - roomHeight -2) + 1;
+            int x = RandomUtils.uniform(random, 1, WIDTH - roomWidth - 1);
+            int y = RandomUtils.uniform(random, 1, HEIGHT - roomHeight - 1);
 
             if (!roomOverlaps(x,y,roomWidth,roomHeight)) {
                 addRoom(x,y,roomWidth,roomHeight);
@@ -164,7 +165,7 @@ public class WorldGenerator {
 
 
     private void connectRooms(Position p1,Position p2) {
-        if (random.nextBoolean()) {
+        if (RandomUtils.bernoulli(random)) {
             addHorizontalHallway(p1.x,p2.x,p1.y);
             addVerticalHallway(p1.y,p2.y,p2.x);
         } else {
@@ -265,8 +266,8 @@ public class WorldGenerator {
         int placed = 0;
         int tries = 0;
         while(placed < count && tries < 5000) {
-            int x = random.nextInt(WIDTH);
-            int y = random.nextInt(HEIGHT);
+            int x = RandomUtils.uniform(random, WIDTH);
+            int y = RandomUtils.uniform(random, HEIGHT);
             if (world[x][y] == Tileset.FLOOR) {
                 if (avatarPosition == null || !(avatarPosition.x == x && avatarPosition.y == y)) {
                     world[x][y] = COIN;
